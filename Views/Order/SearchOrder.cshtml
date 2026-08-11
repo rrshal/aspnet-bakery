@@ -1,0 +1,62 @@
+@{
+    ViewData["Title"] = "Search Order";
+}
+
+<h2>Search Order</h2>
+
+<form method="get" asp-action="SearchOrder" class="mb-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group mb-3">
+                <label class="control-label">Mobile Number</label>
+                <input name="mobileNo" class="form-control" required />
+            </div>
+            <input type="submit" value="Search Order" />
+            <a asp-controller="Order" asp-action="Create" class="ms-4">Add order</a>
+        </div>
+    </div>
+</form>
+
+@if (ViewBag.Message != null)
+{
+    <div class="alert alert-info">@ViewBag.Message</div>
+}
+
+@if (ViewBag.Order != null)
+{
+    <div class="border p-3 mt-3">
+    <p><strong>Customer Name:</strong> @ViewBag.Cust.Name</p>
+    <p><strong>Mobile Number:</strong> @ViewBag.Cust.MobileNo</p>
+    <p><strong>Total Bill:</strong> $@ViewBag.Order.TotalPrice</p>
+
+    <h5 class="mt-3">Items in order</h5>
+    <table class="table table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th>Item name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in ViewBag.OrderItems)
+            {
+                string itemName = "";
+                
+                foreach (var m in ViewBag.MenuItems)
+                {
+                    if (m.Id == item.MenuItemId)
+                    {
+                        itemName = m.Name;
+                    }
+                }
+    <tr>
+        <td>@itemName</td>
+        <td>@item.Quantity</td>
+        <td>$@item.Price</td>
+    </tr>
+}
+            </tbody>
+        </table>
+    </div>
+}
