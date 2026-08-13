@@ -4,151 +4,156 @@ using MongoDB.Driver;
 
 namespace BakeryMongoApp.Controllers;
 
-public class OrderController : Controller {
+public class OrderController : Controller
+{
     private readonly IMongoCollection<Customer> _customerCollection;
     private readonly IMongoCollection<CustomerOrder> _customerOrderCollection;
     private readonly IMongoCollection<CustomerOrderItem> _customerOrderItemCollection;
     private readonly IMongoCollection<MenuItem> _menuItemCollection;
 
-    public OrderController (IConfiguration configuration) {
-        var connectionString = configuration["BakeryDatabase:ConnectionString"];
-        var databaseName = configuration["BakeryDatabase:DatabaseName"];
-
-        var mongoClient = new MongoClient(connectionString);
-        var mongoDatabase = mongoClient.GetDatabase(databaseName);
-
-        _customerCollection = mongoDatabase.GetCollection<Customer>("Customer");
-        _customerOrderCollection = mongoDatabase.GetCollection<CustomerOrder>("CustomerOrder");
-        _customerOrderItemCollection = mongoDatabase.GetCollection<CustomerOrderItem>("CustomerOrderItem");
-        _menuItemCollection = mongoDatabase.GetCollection<MenuItem>("MenuItem");
+    public OrderController(IMongoDatabase database)
+    {
+        _customerCollection = database.GetCollection<Customer>("Customer");
+        _customerOrderCollection = database.GetCollection<CustomerOrder>("CustomerOrder");
+        _customerOrderItemCollection = database.GetCollection<CustomerOrderItem>("CustomerOrderItem");
+        _menuItemCollection = database.GetCollection<MenuItem>("MenuItem");
     }
 
-    public async Task<IActionResult> Create() {
-        var menuItems = await _menuItemCollection.Find (m => true).ToListAsync();
+    public async Task<IActionResult> Create()
+    {
+        var menuItems = await _menuItemCollection.Find(m => true).ToListAsync();
         ViewBag.MenuItems = menuItems;
-      return View();
+        return View();
 
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create (string name, string mobileNo, string[] menuItemIds, int[] quantities) {
+    public async Task<IActionResult> Create(string name, string mobileNo, string[] menuItemIds, int[] quantities)
+    {
         var customer = await _customerCollection.Find(c => c.MobileNo == mobileNo).FirstOrDefaultAsync();
         string customerId;
-        
-        if(customer == null) {
-            var newCust = new Customer {
-                Name = name, 
+
+        if (customer == null)
+        {
+            var newCust = new Customer
+            {
+                Name = name,
                 MobileNo = mobileNo
             };
 
             await _customerCollection.InsertOneAsync(newCust);
             customerId = newCust.Id!;
         }
-            else {
+        else
+        {
             customerId = customer.Id!;
-            }
+        }
 
-        double orderTotalPrice =0;
-            for (int i = 0; i < menuItemIds.Length; i++)
+        decimal orderTotalPrice = 0;
+        for (int i = 0; i < menuItemIds.Length; i++)
+        {
+            int qty = quantities[i];
+            if (qty > 0)
             {
-                int qty = quantities[i];
-                if (qty > 0)
-                {
-                    string itemId = menuItemIds[i];
+                string itemId = menuItemIds[i];
                 var item = await _menuItemCollection.Find(m => m.Id == itemId).FirstOrDefaultAsync();
                 if (item != null)
                 {
                     orderTotalPrice += item.Price * qty;
                 }
-                }
             }
+        }
 
-            var order = new CustomerOrder {
-                CustomerId = customerId,
-                TotalPrice = orderTotalPrice
-            };
-            
+        var order = new CustomerOrder
+        {
+            CustomerId = customerId,
+            TotalPrice = orderTotalPrice
+        };
+
         await _customerOrderCollection.InsertOneAsync(order);
 
-        for (int i = 0; i < menuItemIds.Length; i++) {
-        int qty = quantities[i];
-        if (qty > 0)
+        for (int i = 0; i < menuItemIds.Length; i++)
         {
-            string itemId = menuItemIds[i];
+            int qty = quantities[i];
+            if (qty > 0)
+            {
+                string itemId = menuItemIds[i];
                 var item = await _menuItemCollection.Find(m => m.Id == itemId).FirstOrDefaultAsync();
                 if (item != null)
                 {
-            var orderItem = new CustomerOrderItem() {
-                CustomerOrderId = order.Id,
-                MenuItemId = itemId,
-                Quantity = qty,
-                Price = item.Price
-            };
+                    var orderItem = new CustomerOrderItem()
+                    {
+                        CustomerOrderId = order.Id,
+                        MenuItemId = itemId,
+                        Quantity = qty,
+                        Price = item.Price
+                    };
 
                     await _customerOrderItemCollection.InsertOneAsync(orderItem);
                 }
+            }
         }
+
+        TempData["Message"] = "Order was placed successfully";
+        return RedirectToAction(nameof(Create));
     }
 
-        ViewBag.MenuItems = await _menuItemCollection.Find(m => true).ToListAsync();
-        ViewBag.Message = "Order was placed successfully";
-    
-    return View();
-    }
-
-    public async Task<IActionResult> Delete() {
+    public async Task<IActionResult> Delete()
+    {
         return View();
     }
 
     [HttpPost]
-    public async Task<IActionResult> Delete (string mobileNo) {
-        var customer = await _customerCollection.Find(cust => cust.MobileNo == mobileNo).FirstOrDefaultAsync();
+    public async Task<IActionResult> Delete(string orderId)
+    {
+        var order = await _customerOrderCollection.Find(o => o.Id == orderId).FirstOrDefaultAsync();
 
-        if (customer == null) {
-            ViewBag.Message = "Customer with that phone number was not found";
-            return View();
-        }
-
-        var order = await _customerOrderCollection.Find(ord => ord.CustomerId == customer.Id).FirstOrDefaultAsync();
-
-        if (order == null) {
-            ViewBag.Message = "could not find orders for customer";
-            return View();
+        if (order == null)
+        {
+            TempData["Message"] = "Order not found";
+            return RedirectToAction(nameof(SearchOrder));
         }
 
         await _customerOrderItemCollection.DeleteManyAsync(item => item.CustomerOrderId == order.Id);
         await _customerOrderCollection.DeleteOneAsync(o => o.Id == order.Id);
 
-        ViewBag.Message = "Order was cancelled successfully";
+        TempData["Message"] = "Order was cancelled successfully";
+        return RedirectToAction(nameof(SearchOrder));
+    }
+
+    public async Task<IActionResult> SearchOrder(string mobileNo)
+    {
+        var cust = await _customerCollection.Find(cust => cust.MobileNo == mobileNo).FirstOrDefaultAsync();
+
+        if (cust == null)
+        {
+            ViewBag.Message = "could not find order";
+            return View();
+        }
+
+        var orders = await _customerOrderCollection.Find(ord => ord.CustomerId == cust.Id).ToListAsync();
+
+        if (orders.Count == 0)
+        {
+            ViewBag.Message = "could not find order";
+            return View();
+        }
+
+        var allOrderItems = new List<CustomerOrderItem>();
+        foreach (var order in orders)
+        {
+            var items = await _customerOrderItemCollection.Find(item => item.CustomerOrderId == order.Id).ToListAsync();
+            allOrderItems.AddRange(items);
+        }
+
+        ViewBag.Cust = cust;
+        ViewBag.Orders = orders;
+        ViewBag.OrderItems = allOrderItems;
+        ViewBag.MenuItems = await _menuItemCollection.Find(m => true).ToListAsync();
+
         return View();
     }
 
-    public async Task<IActionResult> SearchOrder (string mobileNo)
-{
-    var cust = await _customerCollection.Find(cust => cust.MobileNo == mobileNo).FirstOrDefaultAsync();
-    
-    if (cust == null) {
-        ViewBag.Message = "could not find order";
-            return View();
-    }
 
-    var order = await _customerOrderCollection.Find(ord => ord.CustomerId == cust.Id).FirstOrDefaultAsync();
 
-    if (order == null) {
-        ViewBag.Message = "could not find order";
-            return View();
-    }
-
-    var orderItems = await _customerOrderItemCollection.Find(item => item.CustomerOrderId == order.Id).ToListAsync();
-    
-    ViewBag.Cust = cust;
-    ViewBag.Order = order;
-    ViewBag.OrderItems = orderItems;
-    ViewBag.MenuItems = await _menuItemCollection.Find(m => true).ToListAsync();
-    
-    return View();
-}
-        
-    
-    
 }

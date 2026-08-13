@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BakeryMongoApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3a1bd7228783efba344c3debdd1a88dabd25df8c")]
 [assembly: System.Reflection.AssemblyProductAttribute("BakeryMongoApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BakeryMongoApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

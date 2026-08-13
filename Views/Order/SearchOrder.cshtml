@@ -17,46 +17,64 @@
     </div>
 </form>
 
-@if (ViewBag.Message != null)
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-info">@TempData["Message"]</div>
+}
+else if (ViewBag.Message != null)
 {
     <div class="alert alert-info">@ViewBag.Message</div>
 }
 
-@if (ViewBag.Order != null)
+@if (ViewBag.Orders != null)
 {
     <div class="border p-3 mt-3">
     <p><strong>Customer Name:</strong> @ViewBag.Cust.Name</p>
     <p><strong>Mobile Number:</strong> @ViewBag.Cust.MobileNo</p>
-    <p><strong>Total Bill:</strong> $@ViewBag.Order.TotalPrice</p>
 
-    <h5 class="mt-3">Items in order</h5>
-    <table class="table table-bordered">
-        <thead class="table-light">
-            <tr>
-                <th>Item name</th>
-                <th>Quantity</th>
-                <th>Price</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in ViewBag.OrderItems)
-            {
-                string itemName = "";
-                
-                foreach (var m in ViewBag.MenuItems)
-                {
-                    if (m.Id == item.MenuItemId)
-                    {
-                        itemName = m.Name;
-                    }
-                }
-    <tr>
-        <td>@itemName</td>
-        <td>@item.Quantity</td>
-        <td>$@item.Price</td>
-    </tr>
-}
-            </tbody>
-        </table>
+    @foreach (var order in ViewBag.Orders)
+        {
+            <div class="border p-2 mt-3 mb-3">
+                <p><strong>Order Total:</strong> $@order.TotalPrice</p>
+
+                <h5 class="mt-3">Items in order</h5>
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item name</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in ViewBag.OrderItems)
+                        {
+                            if (item.CustomerOrderId == order.Id)
+                            {
+                                string itemName = "";
+                                foreach (var m in ViewBag.MenuItems)
+                                {
+                                    if (m.Id == item.MenuItemId)
+                                    {
+                                        itemName = m.Name;
+                                    }
+                                }
+                                <tr>
+                                    <td>@itemName</td>
+                                    <td>@item.Quantity</td>
+                                    <td>$@item.Price</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+
+                <form asp-controller="Order" asp-action="Delete" method="post">
+                    <input type="hidden" name="orderId" value="@order.Id" />
+                    <input type="submit" value="Cancel Order" />
+                </form>
+            </div>
+        }
     </div>
 }
+

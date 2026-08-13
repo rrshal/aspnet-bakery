@@ -13,5 +13,5 @@ public class CustomerOrderItem
     public string CustomerOrderId { get; set; } = string.Empty;
     public string MenuItemId { get; set; } = string.Empty;
     public int Quantity { get; set; }
-    public double Price { get; set; }
+    public decimal Price { get; set; }
 }

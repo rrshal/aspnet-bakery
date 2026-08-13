@@ -12,7 +12,11 @@
                 <div class="text-danger mb-3"> @ViewBag.Error </div>
             }
 
-            @if (ViewBag.Message != null)
+            @if (TempData["Message"] != null)
+            {
+                <div class="alert alert-info">@TempData["Message"]</div>
+            }
+            else if (ViewBag.Message != null)
             {
                 <div class="alert alert-info">@ViewBag.Message</div>
             }
@@ -54,7 +58,6 @@
 
             <div class="form-group mt-4">
                 <input type="submit" value="Submit Order" />
-                <a asp-controller="Order" asp-action="Delete" class="ms-4">Cancel order</a>
                 <a asp-controller="Order" asp-action="SearchOrder" class="ms-4">Search order</a>
 
             </div>
