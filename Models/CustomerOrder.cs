@@ -11,4 +11,6 @@ public class CustomerOrder
     [BsonRepresentation(BsonType.ObjectId)]
     public string CustomerId { get; set; } = string.Empty;
     public decimal TotalPrice { get; set; }
+    public DateTime OrderDate { get; set; } = DateTime.Now;
+    public string Status { get; set; } = "Pending";
 }

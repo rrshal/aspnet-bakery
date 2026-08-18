@@ -1,3 +1,4 @@
+@model BakeryMongoApp.Models.SearchOrderViewModel
 @{
     ViewData["Title"] = "Search Order";
 }
@@ -9,7 +10,8 @@
         <div class="col-md-6">
             <div class="form-group mb-3">
                 <label class="control-label">Mobile Number</label>
-                <input name="mobileNo" class="form-control" required />
+                <input name="mobileNo" pattern="[0-9]{10}" class="form-control" required
+                    title="mobile number must be 10 digits" />
             </div>
             <input type="submit" value="Search Order" />
             <a asp-controller="Order" asp-action="Create" class="ms-4">Add order</a>
@@ -21,20 +23,35 @@
 {
     <div class="alert alert-info">@TempData["Message"]</div>
 }
-else if (ViewBag.Message != null)
+else if (!string.IsNullOrEmpty(Model?.Message))
 {
-    <div class="alert alert-info">@ViewBag.Message</div>
+    <div class="alert alert-info">@Model.Message</div>
 }
 
-@if (ViewBag.Orders != null)
+@if (Model?.Customer != null)
 {
     <div class="border p-3 mt-3">
-    <p><strong>Customer Name:</strong> @ViewBag.Cust.Name</p>
-    <p><strong>Mobile Number:</strong> @ViewBag.Cust.MobileNo</p>
+    <p><strong>Customer Name:</strong> @Model.Customer.Name</p>
+    <p><strong>Mobile Number:</strong> @Model.Customer.MobileNo</p>
 
-    @foreach (var order in ViewBag.Orders)
+    @foreach (var order in Model.Orders)
         {
             <div class="border p-2 mt-3 mb-3">
+                <p><strong>Order Date:</strong> @order.OrderDate.ToString("g")</p>
+                <div class="mb-2">
+                    <strong>Status:</strong>
+                    <form asp-controller="Order" asp-action="UpdateStatus" method="post" class="d-inline-block ms-2">
+                        <input type="hidden" name="orderId" value="@order.Id" />
+                        <input type="hidden" name="mobileNo" value="@Model.Customer.MobileNo" />
+
+                        <select name="newStatus" onchange="this.form.submit()"
+                            class="form-select form-select-sm d-inline-block w-auto">
+                            <option value="Pending" selected="@(order.Status == "Pending")">Pending</option>
+                            <option value="Completed" selected="@(order.Status == "Completed")">Completed</option>
+                            <option value="Cancelled" selected="@(order.Status == "Cancelled")">Cancelled</option>
+                        </select>
+                    </form>
+                </div>
                 <p><strong>Order Total:</strong> $@order.TotalPrice</p>
 
                 <h5 class="mt-3">Items in order</h5>
@@ -47,12 +64,12 @@ else if (ViewBag.Message != null)
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in ViewBag.OrderItems)
+                        @foreach (var item in Model.OrderItems)
                         {
                             if (item.CustomerOrderId == order.Id)
                             {
                                 string itemName = "";
-                                foreach (var m in ViewBag.MenuItems)
+                                foreach (var m in Model.MenuItems)
                                 {
                                     if (m.Id == item.MenuItemId)
                                     {
@@ -71,7 +88,7 @@ else if (ViewBag.Message != null)
 
                 <form asp-controller="Order" asp-action="Delete" method="post">
                     <input type="hidden" name="orderId" value="@order.Id" />
-                    <input type="submit" value="Cancel Order" />
+                    <input type="submit" value="Delete Order" />
                 </form>
             </div>
         }

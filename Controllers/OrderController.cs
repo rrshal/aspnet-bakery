@@ -22,8 +22,9 @@ public class OrderController : Controller
     public async Task<IActionResult> Create()
     {
         var menuItems = await _menuItemCollection.Find(m => true).ToListAsync();
-        ViewBag.MenuItems = menuItems;
-        return View();
+        CreateOrderViewModel model = new CreateOrderViewModel();
+        model.MenuItems = menuItems;
+        return View(model);
 
     }
 
@@ -127,16 +128,18 @@ public class OrderController : Controller
 
         if (cust == null)
         {
-            ViewBag.Message = "could not find order";
-            return View();
+            SearchOrderViewModel errModel = new SearchOrderViewModel();
+            errModel.Message = "could not find order";
+            return View(errModel);
         }
 
         var orders = await _customerOrderCollection.Find(ord => ord.CustomerId == cust.Id).ToListAsync();
 
         if (orders.Count == 0)
         {
-            ViewBag.Message = "could not find order";
-            return View();
+            SearchOrderViewModel errModel = new SearchOrderViewModel();
+            errModel.Message = "could not find order";
+            return View(errModel);
         }
 
         var allOrderItems = new List<CustomerOrderItem>();
@@ -146,14 +149,33 @@ public class OrderController : Controller
             allOrderItems.AddRange(items);
         }
 
-        ViewBag.Cust = cust;
-        ViewBag.Orders = orders;
-        ViewBag.OrderItems = allOrderItems;
-        ViewBag.MenuItems = await _menuItemCollection.Find(m => true).ToListAsync();
+        SearchOrderViewModel model = new SearchOrderViewModel();
+        model.Customer = cust;
+        model.Orders = orders;
+        model.OrderItems = allOrderItems;
+        model.MenuItems = await _menuItemCollection.Find(m => true).ToListAsync();
 
-        return View();
+        return View(model);
     }
 
+    [HttpPost]
+    public async Task<IActionResult> UpdateStatus(string orderId, string newStatus, string mobileNo)
+    {
+        var order = await _customerOrderCollection.Find(o => o.Id == orderId).FirstOrDefaultAsync();
+
+        if (order != null)
+        {
+            order.Status = newStatus;
+            await _customerOrderCollection.ReplaceOneAsync(o => o.Id == orderId, order);
+        }
+
+        TempData["Message"] = "Order status was changed successfully";
+
+        return RedirectToAction(nameof(SearchOrder), new
+        {
+            mobileNo = mobileNo
+        });
+    }
 
 
 }

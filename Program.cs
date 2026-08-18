@@ -27,6 +27,14 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var database = scope.ServiceProvider.GetRequiredService<IMongoDatabase>();
+
+    database.GetCollection<CustomerOrder>("CustomerOrder")
+    .Indexes.CreateOne(new CreateIndexModel<CustomerOrder>("{ CustomerId: 1 }"));
+    database.GetCollection<CustomerOrderItem>("CustomerOrderItem")
+        .Indexes.CreateOne(new CreateIndexModel<CustomerOrderItem>("{ CustomerOrderId: 1 }"));
+    database.GetCollection<CustomerOrderItem>("CustomerOrderItem")
+        .Indexes.CreateOne(new CreateIndexModel<CustomerOrderItem>("{ MenuItemId: 1 }"));
+
     var collection = database.GetCollection<MenuItem>("MenuItem");
     if (!collection.Find(m => true).Any())
     {
